@@ -1,0 +1,13 @@
+.DS_Store
+
+/.bundle/
+
+/*.gem
+/coverage/
+/measurement/
+/pkg/
+
+/.env
+
+/spec/dummy/tmp/
+/spec/dummy/log/
