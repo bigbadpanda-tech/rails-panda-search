@@ -1,38 +1,170 @@
-# Search
+# Rails Panda Search
 
-TODO: Delete this and the text below, and describe your gem
+A Rails gem that enables **substring search on encrypted columns** using pluggable indexing strategies. When columns are encrypted (e.g., via Rails' `encrypts`), traditional SQL `LIKE` queries don't work — this gem solves that by maintaining a search index and using it to locate matching records. Ships with n-gram indexing out of the box.
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/search`. To experiment with that code, run `bin/console` for an interactive prompt.
+## Features
+
+- **Pluggable strategies** — Abstract interface supports any indexing backend (local DB, Elasticsearch, remote API, etc.)
+- **N-gram indexing (built-in)** — Breaks column values into n-character substrings (trigrams by default) for fast substring matching
+- **Multiple concurrent strategies** — Run several strategies simultaneously; results are merged automatically
+- **Custom strategy registration** — Register your own strategies at runtime via `config.register_strategy`
+- **Composite primary key support** — Primary keys stored as JSONB, supporting single and multi-column PKs
+- **ActiveRecord integration** — `can_search_in` DSL adds search helpers directly to your models
+- **Chainable scopes** — `search_for` returns an `ActiveRecord::Relation` you can chain with other scopes
+- **Automatic indexing** — `after_save` / `after_destroy` callbacks keep the index in sync
+- **Manual reindexing** — `reindex_search!` (per-record) and `reindex_search_all!` (per-model or global)
+- **Global search** — `RailsPanda::Search.search_for` searches across all searchable models at once
 
 ## Installation
 
-TODO: Replace `UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG` with your gem name right after releasing it to RubyGems.org. Please do not do it earlier due to security reasons. Alternatively, replace this section with instructions to install your gem from git if you don't plan to release to RubyGems.org.
+Add to your Gemfile:
 
-Install the gem and add to the application's Gemfile by executing:
-
-```bash
-bundle add UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG
+```ruby
+gem "rails-panda-search"
 ```
 
-If bundler is not being used to manage dependencies, install the gem by executing:
+Then run:
 
 ```bash
-gem install UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG
+bundle install
+rails db:migrate
 ```
+
+The gem ships as a Rails Engine that automatically appends its migrations to your app — no install generator needed.
+
+## Configuration
+
+Create an initializer at `config/initializers/rails_panda_search.rb`:
+
+```ruby
+RailsPanda::Search.configure do |config|
+  # Which search strategies to enable (default: [:ngram])
+  config.strategies = [:ngram]
+
+  # N-gram strategy options
+  config.ngram_size = 3  # default: 3 (trigrams)
+
+  # Register custom strategies (optional)
+  # config.strategies = [:ngram, :elasticsearch]
+  # config.register_strategy(:elasticsearch, MyElasticsearchStrategy)
+  # config.strategy_options[:elasticsearch] = { url: "http://localhost:9200" }
+end
+```
+
+> **Note:** Changing `ngram_size` invalidates existing index entries. After changing it, run `RailsPanda::Search.reindex_search_all!` to rebuild.
 
 ## Usage
 
-TODO: Write usage instructions here
+### Basic Setup
+
+```ruby
+class User < ApplicationRecord
+  encrypts :email, :name
+
+  can_search_in :email, :name
+end
+```
+
+### Indexing Custom Methods
+
+`can_search_in` accepts any method name, not just database columns. This is useful for indexing computed or derived values:
+
+```ruby
+class User < ApplicationRecord
+  encrypts :first_name, :last_name
+
+  can_search_in :first_name, :last_name, :full_name
+
+  def full_name
+    "#{first_name} #{last_name}"
+  end
+end
+```
+
+> **Note:** If the data backing a custom method changes through a path that doesn't trigger `after_save` on this model (e.g., a related model changes), call `record.reindex_search!` manually.
+
+### Searching
+
+```ruby
+# Search across all indexed columns
+User.search_for("alice")
+# => #<ActiveRecord::Relation [#<User id: 1, ...>]>
+
+# Search in specific columns only
+User.search_for("example.com", columns: [:email])
+
+# Chain with other scopes
+User.where(active: true).search_for("alice")
+```
+
+### Global Search
+
+Search across **all** models that use `can_search_in`:
+
+```ruby
+results = RailsPanda::Search.search_for("alice")
+# => { "User" => #<ActiveRecord::Relation [...]>, "Contact" => #<ActiveRecord::Relation [...]> }
+```
+
+Column scoping is only available per-model via `User.search_for("alice", columns: [:email])`.
+
+### Reindexing
+
+```ruby
+# Reindex a single record
+user.reindex_search!
+
+# Reindex all records in a model (clears all entries first)
+User.reindex_search_all!
+
+# Reindex all records across ALL searchable models
+RailsPanda::Search.reindex_search_all!
+```
+
+### Large Dataset Reindexing
+
+`reindex_search_all!` clears all entries before rebuilding, so if it's interrupted mid-way, unprocessed records lose their search entries. For large datasets where timeouts are a concern, use per-record reindexing instead:
+
+```ruby
+# Resumable batch reindex — safe to interrupt and pick up later
+User.where("id > ?", last_processed_id).find_each(batch_size: 1000) do |record|
+  record.reindex_search!
+end
+```
+
+`reindex_search!` calls `sync_record!` per record (remove old entries + insert new ones), so existing entries for unprocessed records are preserved.
+
+### Composite Primary Keys
+
+The gem supports models with composite primary keys. Primary keys are stored as JSON:
+
+```ruby
+# Single PK: {"id": 1}
+# Composite PK: {"tenant_id": 5, "id": 42}
+```
+
+## How It Works
+
+The gem dispatches all indexing and searching operations to the active strategy classes. Each strategy implements `index_record!` (pure insert), `remove_record!`, `clear_for_source_type!`, and `search`. A default `sync_record!` (remove + index) is provided by the base class and can be overridden for incremental updates.
+
+With the built-in **n-gram strategy**:
+
+1. When a record is saved, its searchable columns are broken into n-grams (e.g., `"alice"` → `["ali", "lic", "ice"]`)
+2. Each n-gram is stored in the `rails_panda_search_ngram_entries` table with a reference to the source record
+3. When searching, the query string is also broken into n-grams
+4. Records matching **all** query n-grams are found via `GROUP BY ... HAVING COUNT(DISTINCT ngram) = N`
+5. The matching record IDs are used to build an `ActiveRecord::Relation`
+
+## Custom Strategies
+
+See [how_to_add_search_strategies.md](how_to_add_search_strategies.md) for a detailed guide on implementing your own strategy (Elasticsearch, Redis, remote API, etc.).
 
 ## Development
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
-
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and the created tag, and push the `.gem` file to [rubygems.org](https://rubygems.org).
-
-## Contributing
-
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/search.
+```bash
+bundle install
+bundle exec rake    # runs rspec + rubocop
+```
 
 ## License
 

@@ -8,8 +8,10 @@ Gem::Specification.new do |spec|
   spec.authors = ["João Saraiva"]
   spec.email = ["panda@bigbadpanda.com"]
 
-  spec.summary = "TODO: Write a short summary, because RubyGems requires one."
-  spec.description = "TODO: Write a longer description or delete this line."
+  spec.summary = "Search encrypted columns via pluggable indexing strategies."
+  spec.description = "A Rails gem that enables substring search on encrypted ActiveRecord columns " \
+                      "using pluggable indexing strategies. Ships with n-gram indexing out of the box. " \
+                      "Supports composite primary keys and multiple concurrent strategies."
   spec.homepage = "https://github.com/bigbadpanda-tech/rails-panda-search"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.2"
@@ -21,7 +23,8 @@ Gem::Specification.new do |spec|
 
   spec.files = Dir[
     "lib/**/*",
-    "rails_panda_sensitive_data.gemspec",
+    "db/**/*",
+    "rails_panda_search.gemspec",
     "Gemfile",
     # "Rakefile",
     "LICENSE",
