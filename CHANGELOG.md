@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-03-07
+
+### Added
+
+- **Configurable n-gram table name** via `config.ngram_entries_table_name`, with default `rails_panda_search_ngram_entries`
+
+### Changed
+
+- **NgramEntry** now reads its table name from configuration, allowing host apps to override the storage table
+- **N-gram migration** uses the configured table name for `create_table`/`add_index` while keeping a stable, short index name
+
 ## [1.0.0] - 2026-02-15
 
 ### Added

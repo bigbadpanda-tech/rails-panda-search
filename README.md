@@ -44,6 +44,12 @@ RailsPanda::Search.configure do |config|
   # N-gram strategy options
   config.ngram_size = 3  # default: 3 (trigrams)
 
+  # N-gram storage table (for the built-in n-gram strategy)
+  # Default: "rails_panda_search_ngram_entries"
+  # Change this BEFORE running the engine migrations on a fresh app,
+  # or add your own migration to rename the table in an existing app.
+  # config.ngram_entries_table_name = "my_custom_search_ngrams"
+
   # Register custom strategies (optional)
   # config.strategies = [:ngram, :elasticsearch]
   # config.register_strategy(:elasticsearch, MyElasticsearchStrategy)

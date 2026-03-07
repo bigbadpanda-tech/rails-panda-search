@@ -3,6 +3,47 @@ require "rails_helper"
 RSpec.describe RailsPanda::Search::Strategies::Ngram::NgramEntry do
   let(:entry_class) { described_class }
 
+  describe "configuration" do
+    it "uses the configured table name by default" do
+      expect(entry_class.table_name).to eq("rails_panda_search_ngram_entries")
+    end
+
+    it "respects a custom configured table name and directs writes to that table" do
+      connection = ActiveRecord::Base.connection
+      original_config_table_name = RailsPanda::Search.config.ngram_entries_table_name
+      original_model_table_name = entry_class.table_name
+
+      begin
+        RailsPanda::Search.config.ngram_entries_table_name = "custom_search_ngrams"
+        entry_class.table_name = RailsPanda::Search.config.ngram_entries_table_name
+
+        connection.create_table(:custom_search_ngrams, force: true) do |t|
+          t.string :ngram, null: false
+          t.string :source_type, null: false
+          t.string :source_column, null: false
+          t.json :source_id, null: false
+          t.timestamps
+        end
+
+        expect(entry_class.table_name).to eq("custom_search_ngrams")
+
+        entry_class.create!(
+          ngram: "ali",
+          source_type: "User",
+          source_id: {"id" => 1},
+          source_column: "name"
+        )
+
+        count = connection.select_value("SELECT COUNT(*) FROM custom_search_ngrams").to_i
+        expect(count).to eq(1)
+      ensure
+        entry_class.table_name = original_model_table_name
+        RailsPanda::Search.config.ngram_entries_table_name = original_config_table_name
+        connection.drop_table(:custom_search_ngrams, if_exists: true)
+      end
+    end
+  end
+
   describe "scopes" do
     before do
       entry_class.create!(ngram: "ali", source_type: "User", source_id: {"id" => 1}, source_column: "name")

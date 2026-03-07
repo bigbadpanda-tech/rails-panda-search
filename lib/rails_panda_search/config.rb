@@ -4,7 +4,8 @@ module RailsPanda
   module Search
     class Config
       attr_writer :strategies
-      attr_accessor :ngram_size, :strategy_options
+      attr_accessor :strategy_options
+      attr_accessor :ngram_size, :ngram_entries_table_name
 
       # Maps strategy names to their implementation classes.
       # Register new strategies here or via Config#register_strategy.
@@ -12,11 +13,15 @@ module RailsPanda
         ngram: "RailsPanda::Search::Strategies::Ngram::NgramStrategy"
       }.freeze
 
+      DEFAULT_TABLE_PREFIX = "rails_panda_search"
+
       def initialize
         @strategies = [:ngram]
-        @ngram_size = 3
         @strategy_options = {}
         @custom_strategies = {}
+
+        @ngram_size = 3
+        @ngram_entries_table_name = "#{DEFAULT_TABLE_PREFIX}_ngram_entries"
       end
 
       def strategies

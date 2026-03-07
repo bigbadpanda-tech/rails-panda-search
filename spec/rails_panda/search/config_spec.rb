@@ -3,6 +3,17 @@ require "rails_helper"
 RSpec.describe RailsPanda::Search::Config do
   subject(:config) { described_class.new }
 
+  describe "#ngram_entries_table_name" do
+    it "has a suitable default value" do
+      expect(config.ngram_entries_table_name).to eq("rails_panda_search_ngram_entries")
+    end
+
+    it "can be overridden to a custom table name" do
+      config.ngram_entries_table_name = "custom_search_ngrams"
+      expect(config.ngram_entries_table_name).to eq("custom_search_ngrams")
+    end
+  end
+
   describe "#strategy_enabled?" do
     it "returns true for enabled strategies" do
       expect(config.strategy_enabled?(:ngram)).to be(true)
