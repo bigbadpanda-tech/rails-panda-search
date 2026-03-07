@@ -14,6 +14,6 @@ class CreateNgramEntries < ActiveRecord::Migration[7.0]
     end
 
     add_index table_name.to_sym, %i[ngram source_type],
-              name: "idx_rails_panda_search_ngram_entries_on_ngram_and_source_type"
+      name: "idx_rails_panda_search_ngram_entries_on_ngram_and_source_type"
   end
 end
