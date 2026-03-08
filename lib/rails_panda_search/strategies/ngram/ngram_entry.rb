@@ -12,7 +12,7 @@ module RailsPanda
         #  ngram         :string           not null
         #  source_type   :string           not null
         #  source_column :string           not null
-        #  source_id     :json             not null
+        #  source_id     :string           not null
         #  created_at    :datetime         not null
         #  updated_at    :datetime         not null
         #
@@ -58,6 +58,7 @@ module RailsPanda
               .group(:source_type, :source_id)
               .having("COUNT(DISTINCT ngram) = ?", ngrams.length)
               .pluck(:source_type, :source_id)
+              .map { |type, id_json| [type, JSON.parse(id_json)] }
           end
         end
       end

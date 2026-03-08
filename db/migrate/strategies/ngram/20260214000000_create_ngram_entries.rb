@@ -8,7 +8,7 @@ class CreateNgramEntries < ActiveRecord::Migration[7.0]
       t.string :ngram, null: false
       t.string :source_type, null: false
       t.string :source_column, null: false
-      t.json :source_id, null: false
+      t.string :source_id, null: false
 
       t.timestamps
     end

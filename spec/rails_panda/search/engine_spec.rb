@@ -20,7 +20,7 @@ RSpec.describe RailsPanda::Search::Engine do
     it "warns when existing ngram length mismatches configured size" do
       entry_class.create!(
         ngram: "ab", source_type: "Test",
-        source_id: {"id" => 1}, source_column: "name"
+        source_id: {"id" => 1}.to_json, source_column: "name"
       )
 
       allow(Rails.logger).to receive(:warn)
@@ -32,7 +32,7 @@ RSpec.describe RailsPanda::Search::Engine do
     it "does not warn when ngram length matches configured size" do
       entry_class.create!(
         ngram: "abc", source_type: "Test",
-        source_id: {"id" => 1}, source_column: "name"
+        source_id: {"id" => 1}.to_json, source_column: "name"
       )
 
       allow(Rails.logger).to receive(:warn)

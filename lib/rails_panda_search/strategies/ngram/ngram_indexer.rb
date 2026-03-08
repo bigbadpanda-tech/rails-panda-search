@@ -29,7 +29,7 @@ module RailsPanda
                   NgramEntry.create!(
                     ngram: ngram,
                     source_type: source_type,
-                    source_id: pk_hash,
+                    source_id: pk_hash.to_json,
                     source_column: column.to_s
                   )
                 end
@@ -40,7 +40,7 @@ module RailsPanda
             def remove_record!(record)
               NgramEntry.where(
                 source_type: record.class.name,
-                source_id: primary_key_hash(record)
+                source_id: primary_key_hash(record).to_json
               ).delete_all
             end
 

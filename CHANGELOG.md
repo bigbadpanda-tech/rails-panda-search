@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-03-08
+
+### Fixed
+
+- `source_id` column type changed from json to string -- PostgreSQL's `json` type has no `=` operator, breaking saves. Existing PostgreSQL installations need a one-time migration: `change_column <table>, :source_id, :string, using: "source_id::text"`.
+
 ## [1.0.2] - 2026-03-08
 
 ### Fixed

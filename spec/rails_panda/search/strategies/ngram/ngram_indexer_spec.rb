@@ -106,12 +106,12 @@ RSpec.describe RailsPanda::Search::Strategies::Ngram::NgramIndexer do
 
     it "skips columns with blank values" do
       blank_record = TestRecord.create!(name: nil, email: "test@example.com")
-      entry_class.where(source_type: "TestRecord", source_id: described_class.primary_key_hash(blank_record)).delete_all
+      entry_class.where(source_type: "TestRecord", source_id: described_class.primary_key_hash(blank_record).to_json).delete_all
 
       described_class.index_record!(blank_record, [:name])
       entries = entry_class.where(
         source_type: "TestRecord",
-        source_id: described_class.primary_key_hash(blank_record),
+        source_id: described_class.primary_key_hash(blank_record).to_json,
         source_column: "name"
       )
       expect(entries.count).to eq(0)
@@ -119,12 +119,12 @@ RSpec.describe RailsPanda::Search::Strategies::Ngram::NgramIndexer do
 
     it "skips columns with empty string values" do
       empty_record = TestRecord.create!(name: "", email: "test@example.com")
-      entry_class.where(source_type: "TestRecord", source_id: described_class.primary_key_hash(empty_record)).delete_all
+      entry_class.where(source_type: "TestRecord", source_id: described_class.primary_key_hash(empty_record).to_json).delete_all
 
       described_class.index_record!(empty_record, [:name])
       entries = entry_class.where(
         source_type: "TestRecord",
-        source_id: described_class.primary_key_hash(empty_record),
+        source_id: described_class.primary_key_hash(empty_record).to_json,
         source_column: "name"
       )
       expect(entries.count).to eq(0)

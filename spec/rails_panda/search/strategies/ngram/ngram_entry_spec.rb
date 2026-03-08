@@ -34,7 +34,7 @@ RSpec.describe RailsPanda::Search::Strategies::Ngram::NgramEntry do
           t.string :ngram, null: false
           t.string :source_type, null: false
           t.string :source_column, null: false
-          t.json :source_id, null: false
+          t.string :source_id, null: false
           t.timestamps
         end
 
@@ -43,7 +43,7 @@ RSpec.describe RailsPanda::Search::Strategies::Ngram::NgramEntry do
         entry_class.create!(
           ngram: "ali",
           source_type: "User",
-          source_id: {"id" => 1},
+          source_id: {"id" => 1}.to_json,
           source_column: "name"
         )
 
@@ -57,9 +57,9 @@ RSpec.describe RailsPanda::Search::Strategies::Ngram::NgramEntry do
 
   describe "scopes" do
     before do
-      entry_class.create!(ngram: "ali", source_type: "User", source_id: {"id" => 1}, source_column: "name")
-      entry_class.create!(ngram: "lic", source_type: "User", source_id: {"id" => 1}, source_column: "name")
-      entry_class.create!(ngram: "ali", source_type: "Contact", source_id: {"id" => 2}, source_column: "email")
+      entry_class.create!(ngram: "ali", source_type: "User", source_id: {"id" => 1}.to_json, source_column: "name")
+      entry_class.create!(ngram: "lic", source_type: "User", source_id: {"id" => 1}.to_json, source_column: "name")
+      entry_class.create!(ngram: "ali", source_type: "Contact", source_id: {"id" => 2}.to_json, source_column: "email")
     end
 
     describe ".for_ngram" do
@@ -86,17 +86,17 @@ RSpec.describe RailsPanda::Search::Strategies::Ngram::NgramEntry do
     before do
       # User 1: "alice" in name → ali, lic, ice
       %w[ali lic ice].each do |ngram|
-        entry_class.create!(ngram: ngram, source_type: "User", source_id: {"id" => 1}, source_column: "name")
+        entry_class.create!(ngram: ngram, source_type: "User", source_id: {"id" => 1}.to_json, source_column: "name")
       end
 
       # User 2: "alison" in name → ali, lis, iso, son
       %w[ali lis iso son].each do |ngram|
-        entry_class.create!(ngram: ngram, source_type: "User", source_id: {"id" => 2}, source_column: "name")
+        entry_class.create!(ngram: ngram, source_type: "User", source_id: {"id" => 2}.to_json, source_column: "name")
       end
 
       # Contact 3: "alice" in email → ali, lic, ice
       %w[ali lic ice].each do |ngram|
-        entry_class.create!(ngram: ngram, source_type: "Contact", source_id: {"id" => 3}, source_column: "email")
+        entry_class.create!(ngram: ngram, source_type: "Contact", source_id: {"id" => 3}.to_json, source_column: "email")
       end
     end
 
