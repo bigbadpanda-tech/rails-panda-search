@@ -4,18 +4,31 @@ RSpec.describe RailsPanda::Search::Strategies::Ngram::NgramEntry do
   let(:entry_class) { described_class }
 
   describe "configuration" do
-    it "uses the configured table name by default" do
+    it "uses the original table name by default" do
       expect(entry_class.table_name).to eq("rails_panda_search_ngram_entries")
     end
 
-    it "respects a custom configured table name and directs writes to that table" do
-      connection = ActiveRecord::Base.connection
-      original_config_table_name = RailsPanda::Search.config.ngram_entries_table_name
-      original_model_table_name = entry_class.table_name
+    context "with table name override" do
+      around do |example|
+        original = RailsPanda::Search.config.ngram_entries_table_name
+        begin
+          example.call
+        ensure
+          RailsPanda::Search.config.ngram_entries_table_name = original
+          described_class.reset_column_information
+        end
+      end
 
-      begin
+      it "uses the configured table name at runtime" do
         RailsPanda::Search.config.ngram_entries_table_name = "custom_search_ngrams"
-        entry_class.table_name = RailsPanda::Search.config.ngram_entries_table_name
+
+        expect(described_class.table_name).to eq("custom_search_ngrams")
+      end
+
+      it "respects a custom configured table name and directs writes to that table" do
+        connection = ActiveRecord::Base.connection
+
+        RailsPanda::Search.config.ngram_entries_table_name = "custom_search_ngrams"
 
         connection.create_table(:custom_search_ngrams, force: true) do |t|
           t.string :ngram, null: false
@@ -36,9 +49,7 @@ RSpec.describe RailsPanda::Search::Strategies::Ngram::NgramEntry do
 
         count = connection.select_value("SELECT COUNT(*) FROM custom_search_ngrams").to_i
         expect(count).to eq(1)
-      ensure
-        entry_class.table_name = original_model_table_name
-        RailsPanda::Search.config.ngram_entries_table_name = original_config_table_name
+
         connection.drop_table(:custom_search_ngrams, if_exists: true)
       end
     end

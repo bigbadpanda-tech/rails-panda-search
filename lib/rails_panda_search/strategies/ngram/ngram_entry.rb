@@ -21,7 +21,10 @@ module RailsPanda
         #  idx_rails_panda_search_ngram_entries_on_ngram_and_source_type  (ngram,source_type)
         #
         class NgramEntry < ::ActiveRecord::Base # rubocop:disable Rails/ApplicationRecord
-          self.table_name = RailsPanda::Search.config.ngram_entries_table_name
+          # Always read from config at call time, so initializers and late config changes are respected.
+          def self.table_name
+            RailsPanda::Search.config.ngram_entries_table_name
+          end
 
           scope :for_ngram, ->(ngram) { where(ngram: ngram) }
           scope :for_source_type, ->(type) { where(source_type: type) }

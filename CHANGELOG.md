@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-03-08
+
+### Fixed
+
+- **NgramEntry** was not picking up its table name correctly from config when it was set in an initializer.
+
 ## [1.0.1] - 2026-03-07
 
 ### Added
